@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  text-align: center;
+  touch-action: none;
+}
+canvas {
+  display: block;
+  margin: auto;
+  background: #000;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="300" height="400"></canvas>
+<p>画面タップで発射 / スライドで移動</p>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x: 140, y: 360 };
+let bullets = [];
+let enemies = [];
+let score = 0;
+
+// 敵生成
+for (let i = 0; i < 5; i++) {
+  for (let j = 0; j < 3; j++) {
+    enemies.push({
+      x: 40 + i * 40,
+      y: 30 + j * 30,
+      baseX: 40 + i * 40
+    });
+  }
+}
+
+// タッチ操作
+canvas.addEventListener("touchmove", e => {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  player.x = touch.clientX - rect.left - 10;
+});
+
+canvas.addEventListener("touchstart", () => {
+  bullets.push({ x: player.x + 10, y: player.y });
+});
+
+// ===== 描画系 =====
+
+// スライム
+function drawSlime(e) {
+  let wobble = Math.sin(Date.now() * 0.005) * 2;
+
+  // 体
+  ctx.fillStyle = "#4fc3f7";
+  ctx.beginPath();
+  ctx.arc(e.x + 10, e.y + 10 + wobble, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 下のぷに
+  ctx.beginPath();
+  ctx.arc(e.x + 10, e.y + 15 + wobble, 8, 0, Math.PI);
+  ctx.fill();
+
+  // 目
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.arc(e.x + 6, e.y + 8 + wobble, 2, 0, Math.PI * 2);
+  ctx.arc(e.x + 14, e.y + 8 + wobble, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 瞳
+  ctx.fillStyle = "black";
+  ctx.beginPath();
+  ctx.arc(e.x + 6, e.y + 8 + wobble, 1, 0, Math.PI * 2);
+  ctx.arc(e.x + 14, e.y + 8 + wobble, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 口
+  ctx.beginPath();
+  ctx.arc(e.x + 10, e.y + 12 + wobble, 3, 0, Math.PI);
+  ctx.stroke();
+}
+
+// 弓兵
+function drawArcher(p) {
+  // 体
+  ctx.fillStyle = "#8d6e63";
+  ctx.fillRect(p.x + 6, p.y - 8, 8, 10);
+
+  // 頭
+  ctx.beginPath();
+  ctx.arc(p.x + 10, p.y - 12, 4, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffcc80";
+  ctx.fill();
+
+  // 弓
+  ctx.strokeStyle = "#a1887f";
+  ctx.beginPath();
+  ctx.arc(p.x + 2, p.y - 5, 10, -0.5, 0.5);
+  ctx.stroke();
+
+  // 矢（構え）
+  ctx.strokeStyle = "yellow";
+  ctx.beginPath();
+  ctx.moveTo(p.x + 2, p.y - 5);
+  ctx.lineTo(p.x + 12, p.y - 5);
+  ctx.stroke();
+}
+
+// ===== 更新処理 =====
+
+function update() {
+  bullets.forEach(b => b.y -= 6);
+
+  // 当たり判定
+  bullets.forEach((b, bi) => {
+    enemies.forEach((e, ei) => {
+      if (
+        b.x < e.x + 20 &&
+        b.x + 2 > e.x &&
+        b.y < e.y + 20 &&
+        b.y + 10 > e.y
+      ) {
+        enemies.splice(ei, 1);
+        bullets.splice(bi, 1);
+        score++;
+      }
+    });
+  });
+
+  // 敵の動き
+  enemies.forEach(e => {
+    e.y += 0.1;
+    e.x = e.baseX + Math.sin(Date.now() * 0.002 + e.y) * 5;
+  });
+}
+
+// ===== 描画 =====
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // プレイヤー
+  drawArcher(player);
+
+  // 矢
+  ctx.strokeStyle = "yellow";
+  bullets.forEach(b => {
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y + 10);
+    ctx.stroke();
+  });
+
+  // 敵
+  enemies.forEach(e => drawSlime(e));
+
+  // スコア
+  ctx.fillStyle = "white";
+  ctx.fillText("Score: " + score, 10, 15);
+}
+
+// ループ
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
